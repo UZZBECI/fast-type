@@ -76,57 +76,82 @@
         <button class="btn-outline" onclick="logout()">Chiqish</button>
     </div>
 
-    <script>
-        let isLoginMode = true;
+    <script>let isLoginMode = true;
+// Renderdagi serveringiz manzili
+const API_URL = "https://fast-type-ckq4.onrender.com";
 
-        function toggleMode() {
-            isLoginMode = !isLoginMode;
-            document.getElementById('form-title').innerText = isLoginMode ? "KIRISH" : "RO'YXATDAN O'TISH";
-            document.getElementById('main-btn').innerText = isLoginMode ? "KIRISH" : "TASDIQLASH";
-            document.getElementById('toggle-link').innerText = isLoginMode ? "Yangi ishtirokchi yaratish" : "Akkauntingiz bormi? Kirish";
-            document.getElementById('err').innerText = "";
-        }
+function toggleMode() {
+    isLoginMode = !isLoginMode;
+    document.getElementById('form-title').innerText = isLoginMode ? "KIRISH" : "RO'YXATDAN O'TISH";
+    document.getElementById('main-btn').innerText = isLoginMode ? "KIRISH" : "TASDIQLASH";
+    document.getElementById('toggle-link').innerText = isLoginMode ? "Yangi ishtirokchi yaratish" : "Akkauntingiz bormi? Kirish";
+    document.getElementById('err').innerText = "";
+}
 
-       async function handleAuth() {
+async function handleAuth() {
     const name = document.getElementById('name').value.trim();
     const pass = document.getElementById('pass').value.trim();
+    const errDisplay = document.getElementById('err');
 
-    const response = await fetch('http://localhost:5000/api/auth', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({fullname: name, password: pass})
-    });
+    if (!name || !pass) {
+        errDisplay.innerText = "Ism va parolni kiriting!";
+        return;
+    }
 
-    const data = await response.json();
-    if(response.ok) {
-        localStorage.setItem('currentUser', JSON.stringify(data.user));
-        location.href = 'asosiy.html';
-    } else {
-        document.getElementById('err').innerText = data.message;
+    try {
+        // 'http://localhost:5000' o'rniga 'API_URL' ishlatamiz
+        const response = await fetch(`${API_URL}/api/auth`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({fullname: name, password: pass})
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+            location.href = 'asosiy.html';
+        } else {
+            errDisplay.innerText = data.message || "Xatolik yuz berdi!";
+        }
+    } catch (error) {
+        console.error("Xatolik:", error);
+        errDisplay.innerText = "Serverga ulanib bo'lmadi. Server uyg'onayotgan bo'lishi mumkin (30 soniya kuting).";
     }
 }
 
-        function login(user) {
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            checkUser();
-        }
+function login(user) {
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    checkUser();
+}
 
-        function logout() {
-            localStorage.removeItem('currentUser');
-            location.reload();
-        }
+function logout() {
+    localStorage.removeItem('currentUser');
+    location.reload();
+}
 
-        function checkUser() {
-            const current = JSON.parse(localStorage.getItem('currentUser'));
-            if(current) {
-                document.getElementById('auth-card').style.display = 'none';
-                document.getElementById('user-card').style.display = 'block';
-                document.getElementById('u-name').innerText = current.fullname;
-                document.getElementById('u-wpm').innerText = current.bestWPM || '0';
-            }
-        }
+function checkUser() {
+    const current = JSON.parse(localStorage.getItem('currentUser'));
+    const authCard = document.getElementById('auth-card');
+    const userCard = document.getElementById('user-card');
 
-        window.onload = checkUser;
+    if (current) {
+        if (authCard) authCard.style.display = 'none';
+        if (userCard) {
+            userCard.style.display = 'block';
+            document.getElementById('u-name').innerText = current.fullname;
+            document.getElementById('u-wpm').innerText = current.bestWPM || '0';
+        }
+    }
+}
+
+// Sahifa yuklanganda ham serverni "uyg'otib" qo'yamiz
+window.onload = () => {
+    checkUser();
+    // Server bepul bo'lgani uchun unga bo'sh so'rov yuboramiz, u tezroq uyg'onadi
+    fetch(API_URL).catch(() => {}); 
+};
     </script>
 </body>
+
 </html>
