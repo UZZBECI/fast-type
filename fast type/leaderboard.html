@@ -88,7 +88,10 @@
     </div>
 
     <script>
-      // Serverdan ma'lumotlarni olib kelish funksiyasi
+// Render serveringiz manzili
+const API_URL = "https://fast-type-ckq4.onrender.com";
+
+// Serverdan ma'lumotlarni olib kelish funksiyasi
 async function loadLeaderboard() {
     const tableBody = document.getElementById('leaderboard-body');
 
@@ -96,8 +99,8 @@ async function loadLeaderboard() {
     tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--sub);">Ma'lumotlar yuklanmoqda...</td></tr>`;
 
     try {
-        // 1. Serverga (Flask) so'rov yuborish
-        const response = await fetch('http://localhost:5000/api/leaderboard');
+        // 1. Serverga (Flask) so'rov yuborish - Render API URL ishlatildi
+        const response = await fetch(`${API_URL}/api/leaderboard`);
 
         if (!response.ok) {
             throw new Error("Server bilan aloqa o'rnatib bo'lmadi");
@@ -117,7 +120,6 @@ async function loadLeaderboard() {
             const rank = index + 1;
             const isTop1 = rank === 1 ? 'top-1' : ''; // Birinchi o'rin uchun maxsus klass
 
-            // Natijalar bo'sh bo'lsa "-" belgisini qo'yish
             const wpmDisplay = user.bestWPM || 0;
             const accDisplay = user.bestAcc ? user.bestAcc + "%" : "0%";
 
@@ -132,13 +134,13 @@ async function loadLeaderboard() {
         }).join('');
 
     } catch (err) {
-        // 5. Xatolik yuz bersa (masalan, server o'chiq bo'lsa)
+        // 5. Xatolik yuz bersa (Render serveri uxlayotgan bo'lishi mumkin)
         console.error("Leaderboard yuklashda xatolik:", err);
         tableBody.innerHTML = `
             <tr>
                 <td colspan="4" style="text-align:center; padding: 50px; color: #ef4444;">
-                    ⚠️ Server bilan aloqa yo'q!<br>
-                    <small style="color: var(--sub);">Terminalda 'python server.py' ishlayotganini tekshiring.</small>
+                    ⚠️ Server uyg'onmoqda...<br>
+                    <small style="color: var(--sub);">Render bepul tarifida server 30-50 soniyada uyg'onadi. Iltimos, birozdan so'ng sahifani yangilang.</small>
                 </td>
             </tr>`;
     }
@@ -147,8 +149,9 @@ async function loadLeaderboard() {
 // Sahifa to'liq yuklanganda funksiyani ishga tushirish
 document.addEventListener('DOMContentLoaded', loadLeaderboard);
 
-// Har 30 soniyada ma'lumotlarni yangilab turish (ixtiyoriy)
+// Har 30 soniyada ma'lumotlarni yangilab turish
 setInterval(loadLeaderboard, 30000);
     </script>
 </body>
+
 </html>
