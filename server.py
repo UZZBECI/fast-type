@@ -73,6 +73,5 @@ def get_leaderboard():
     return jsonify([{"fullname": u['fullname'], "bestWPM": u['bestWPM'], "bestAcc": u['bestAcc']} for u in users])
 
 if __name__ == '__main__':
-    # Lokal test qilish uchun
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
