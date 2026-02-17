@@ -1,17 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import os
 
-app = Flask(__name__)
-# CORS barcha manbalarga ruxsat beradi, xavfsizlik uchun Netlify URL'ingizni qo'shishingiz mumkin
+# templates papkasini ko'rsatamiz
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
 DATABASE = 'database.db'
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row # Ma'lumotlarni lug'at ko'rinishida olish uchun
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
@@ -24,12 +24,23 @@ def init_db():
                          bestAcc INTEGER DEFAULT 0)''')
         conn.commit()
 
-# Gunicorn ishga tushganda ham bazani yaratish uchun uni funksiyadan tashqarida chaqiramiz
 init_db()
 
+# --- SAHIFALARNI CHIQARISH (Frontend) ---
+
 @app.route('/')
-def index():
-    return "Server is running!"
+def home():
+    return render_template('index.html')
+
+@app.route('/game')
+def game_page():
+    return render_template('asosiy.html')
+
+@app.route('/leaderboard-page')
+def leaderboard_view():
+    return render_template('leaderboard.html')
+
+# --- API YO'NALISHLARI ---
 
 @app.route('/api/auth', methods=['POST'])
 def auth():
@@ -39,7 +50,6 @@ def auth():
     
     with get_db() as conn:
         user = conn.execute("SELECT * FROM users WHERE fullname = ?", (name,)).fetchone()
-        
         if user:
             if user['password'] == password:
                 return jsonify({
@@ -48,7 +58,6 @@ def auth():
                 })
             return jsonify({"status": "error", "message": "Parol xato!"}), 401
 
-        # Ro'yxatdan o'tkazish
         try:
             conn.execute("INSERT INTO users (fullname, password) VALUES (?, ?)", (name, password))
             conn.commit()
@@ -69,7 +78,6 @@ def update():
 def get_leaderboard():
     with get_db() as conn:
         users = conn.execute("SELECT fullname, bestWPM, bestAcc FROM users ORDER BY bestWPM DESC LIMIT 10").fetchall()
-    
     return jsonify([{"fullname": u['fullname'], "bestWPM": u['bestWPM'], "bestAcc": u['bestAcc']} for u in users])
 
 if __name__ == '__main__':
