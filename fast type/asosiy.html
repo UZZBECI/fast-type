@@ -92,7 +92,7 @@
 </footer>
 
 <script>
-  const wordsBox = document.getElementById('words-box');
+const wordsBox = document.getElementById('words-box');
 const hiddenInput = document.getElementById('hidden-input');
 const timerVal = document.getElementById('timer-val');
 const timerNav = document.getElementById('timer-nav');
@@ -101,6 +101,9 @@ const gameArea = document.getElementById('game-area');
 const wpmShow = document.getElementById('wpm');
 const accShow = document.getElementById('acc');
 const themeToggle = document.getElementById('theme-toggle');
+
+// Render server manzili
+const API_URL = "https://fast-type-ckq4.onrender.com";
 
 const wordsList = "olma anor daryo quyosh dasturlash maktab kitob qalam ilm natija dunyo tezlik harakat kelajak maqsad baxt omad jasorat kompyuter bilim asbob tugma ekran rasm".split(' ');
 let timeLimit = 30, timeLeft = 30, timerInterval = null, afkTimeout = null, charIndex = 0, mistakes = 0, isStarted = false, isPaused = false;
@@ -132,7 +135,6 @@ function init() {
     addWords(60);
     updateCursor();
 
-    // Avtomatik fokus berish
     setTimeout(() => hiddenInput.focus(), 100);
 }
 
@@ -175,9 +177,9 @@ function updateCursor() {
     }
 }
 
-// 2. Yozish logikasi (Vaqtni tekshirish bilan)
+// 2. Yozish logikasi
 hiddenInput.addEventListener('keydown', (e) => {
-    if (timeLeft <= 0) return; // Vaqt tugasa ishlamaydi
+    if (timeLeft <= 0) return;
 
     if (!isStarted && e.key.length === 1) {
         isStarted = true;
@@ -203,7 +205,6 @@ hiddenInput.addEventListener('keydown', (e) => {
 });
 
 hiddenInput.addEventListener('input', (e) => {
-    // VAQT TUGASA YOZISHNI TO'XTATISH
     if (isPaused || timeLeft <= 0) {
         e.target.value = "";
         return;
@@ -255,15 +256,24 @@ function updateStats() {
 // 4. O'yinni tugatish va Serverga yuborish
 async function finishGame() {
     clearInterval(timerInterval);
-    hiddenInput.disabled = true; // Inputni qulflash
+    hiddenInput.disabled = true;
 
     const finalWpm = parseInt(wpmShow.innerText);
     const finalAcc = parseInt(accShow.innerText);
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
-    // Serverga yuborish
+    if (!currentUser) return;
+
+    // LOCAL STORAGE-NI HAM YANGILAB QO'YAMIZ (Reyting jadvaliga o'tishdan oldin)
+    if (finalWpm > (currentUser.bestWPM || 0)) {
+        currentUser.bestWPM = finalWpm;
+        currentUser.bestAcc = finalAcc;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+
     try {
-        const response = await fetch('http://localhost:5000/api/update', {
+        // 'http://localhost:5000' o'rniga 'API_URL' ishlatildi
+        const response = await fetch(`${API_URL}/api/update`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -274,12 +284,16 @@ async function finishGame() {
         });
 
         if (response.ok) {
-            alert("Vaqt tugadi! Natijangiz saqlandi.");
+            alert("Vaqt tugadi! Yangi natijangiz serverga saqlandi.");
+            location.href = 'leaderboard.html';
+        } else {
+            alert("Vaqt tugadi! Natija ko'rsatildi, lekin saqlashda xatolik bo'ldi.");
             location.href = 'leaderboard.html';
         }
     } catch (err) {
         console.log("Serverga ulanishda xatolik:", err);
-        alert("O'yin tugadi! (Server o'chiqligi sababli natija faqat ekranda chiqdi)");
+        alert("O'yin tugadi! Server vaqtincha javob bermadi, lekin natijangiz ekranda.");
+        location.href = 'leaderboard.html';
     }
 }
 
@@ -316,4 +330,5 @@ themeToggle.addEventListener('change', () => {
 init();
 </script>
 </body>
+
 </html>
