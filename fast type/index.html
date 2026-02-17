@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - Fast Type</title>
+    <style>
+        :root { --bg: #ffffff; --main: #3b82f6; --sub: #94a3b8; --text: #1e293b; --font: 'Courier New', Courier, monospace; }
+        body.dark-mode { --bg: #111111; --main: #facc15; --sub: #64748b; --text: #e2e8f0; }
+
+        body {
+            background-color: var(--bg); color: var(--text); font-family: var(--font);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; transition: 0.3s;
+        }
+
+        .card {
+            background: #1c1c1c; padding: 40px; border-radius: 20px;
+            width: 400px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Salomlashuv matni */
+        .welcome-msg { color: var(--main); font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; }
+
+        /* Foydalanuvchi nomi (Email/Ism) */
+        .user-id {
+            color: var(--main); font-size: 1.1rem; margin-bottom: 25px;
+            border: 2px solid var(--main); padding: 10px; display: inline-block;
+            word-break: break-all;
+        }
+
+        .stat-label { color: var(--sub); font-size: 0.9rem; margin-bottom: 5px; }
+        .wpm-value { font-size: 4rem; font-weight: 900; margin: 10px 0; color: #fff; }
+        .wpm-unit { font-size: 1rem; color: var(--sub); margin-left: 10px; }
+
+        input {
+            width: 100%; padding: 14px; margin: 10px 0; border: 2px solid var(--sub);
+            border-radius: 10px; background: transparent; color: inherit;
+            outline: none; box-sizing: border-box;
+        }
+
+        button {
+            width: 100%; padding: 14px; background: var(--main); border: none;
+            border-radius: 10px; font-weight: bold; cursor: pointer;
+            margin-top: 15px; color: #111; font-size: 1rem; text-transform: uppercase;
+        }
+
+        .btn-outline {
+            background: transparent; border: 1px solid var(--sub); color: var(--text);
+        }
+
+        .error { color: #ef4444; font-size: 0.85rem; margin-top: 15px; font-weight: bold; }
+        .toggle-text { margin-top: 20px; font-size: 0.85rem; color: var(--sub); cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div class="card" id="auth-card">
+        <h2 id="form-title" style="color:var(--main)">KIRISH</h2>
+        <input type="text" id="name" placeholder="Ism Familiya yoki Email">
+        <input type="password" id="pass" placeholder="Parol">
+        <button id="main-btn" onclick="handleAuth()">KIRISH</button>
+        <div id="err" class="error"></div>
+        <p class="toggle-text" id="toggle-link" onclick="toggleMode()">Yangi ishtirokchi yaratish</p>
+    </div>
+
+    <div class="card" id="user-card" style="display:none">
+        <div class="welcome-msg">Fast Type-ga xush kelibsiz!</div>
+        <div class="user-id" id="u-name">shukurullayevfx7@gmail.com</div>
+
+        <div class="stat-label">Sizning eng yaxshi natijangiz:</div>
+        <div class="wpm-value"><span id="u-wpm">0</span><span class="wpm-unit">WPM</span></div>
+
+        <button onclick="location.href='asosiy.html'">O'YINNI BOSHLASH</button>
+        <button class="btn-outline" onclick="logout()">Chiqish</button>
+    </div>
+
+    <script>
+        let isLoginMode = true;
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('form-title').innerText = isLoginMode ? "KIRISH" : "RO'YXATDAN O'TISH";
+            document.getElementById('main-btn').innerText = isLoginMode ? "KIRISH" : "TASDIQLASH";
+            document.getElementById('toggle-link').innerText = isLoginMode ? "Yangi ishtirokchi yaratish" : "Akkauntingiz bormi? Kirish";
+            document.getElementById('err').innerText = "";
+        }
+
+       async function handleAuth() {
+    const name = document.getElementById('name').value.trim();
+    const pass = document.getElementById('pass').value.trim();
+
+    const response = await fetch('http://localhost:5000/api/auth', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({fullname: name, password: pass})
+    });
+
+    const data = await response.json();
+    if(response.ok) {
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        location.href = 'asosiy.html';
+    } else {
+        document.getElementById('err').innerText = data.message;
+    }
+}
+
+        function login(user) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            checkUser();
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            location.reload();
+        }
+
+        function checkUser() {
+            const current = JSON.parse(localStorage.getItem('currentUser'));
+            if(current) {
+                document.getElementById('auth-card').style.display = 'none';
+                document.getElementById('user-card').style.display = 'block';
+                document.getElementById('u-name').innerText = current.fullname;
+                document.getElementById('u-wpm').innerText = current.bestWPM || '0';
+            }
+        }
+
+        window.onload = checkUser;
+    </script>
+</body>
+</html>

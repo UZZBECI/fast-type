@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Leaderboard - Fast Type</title>
+    <style>
+        :root { --bg: #ffffff; --main: #3b82f6; --sub: #94a3b8; --text: #1e293b; --font: 'Courier New', Courier, monospace; }
+        body.dark-mode { --bg: #111111; --main: #facc15; --sub: #64748b; --text: #e2e8f0; }
+
+        body {
+            background-color: var(--bg); color: var(--text); font-family: var(--font);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; transition: 0.3s; padding: 40px 20px;
+        }
+
+        .container { width: 100%; max-width: 800px; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; margin-bottom: 50px;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 900; color: var(--main); text-decoration: none; border: 2px solid var(--main); padding: 5px 15px; }
+
+        h1 { letter-spacing: 5px; text-transform: uppercase; font-size: 2rem; color: var(--text); margin-bottom: 30px; text-align: center; }
+
+        /* Reyting jadvali */
+        table {
+            width: 100%; border-collapse: separate; border-spacing: 0 10px;
+            margin-top: 20px;
+        }
+
+        th {
+            text-align: left; padding: 15px; color: var(--sub); font-size: 0.8rem;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        tr.user-row {
+            background: rgba(148, 163, 184, 0.05); transition: 0.2s;
+        }
+
+        tr.user-row:hover { background: rgba(148, 163, 184, 0.1); transform: scale(1.01); }
+
+        td { padding: 20px 15px; font-size: 1.1rem; }
+
+        /* Birinchi o'rin uchun maxsus stil */
+        tr.top-1 { border-left: 4px solid var(--main); background: rgba(250, 204, 21, 0.05); }
+        tr.top-1 td:nth-child(1) { color: var(--main); font-weight: 900; font-size: 1.5rem; }
+
+        .rank { width: 50px; font-weight: bold; color: var(--sub); }
+        .name { font-weight: bold; }
+        .wpm-cell { text-align: right; color: var(--main); font-weight: 900; }
+        .acc-cell { text-align: right; color: var(--sub); font-size: 0.9rem; }
+
+        .back-btn {
+            margin-top: 40px; color: var(--sub); text-decoration: none;
+            font-size: 0.9rem; transition: 0.3s;
+        }
+        .back-btn:hover { color: var(--main); }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div class="container">
+        <header>
+            <a href="asosiy.html" class="logo">FAST TYPE</a>
+            <div style="color: var(--sub); font-size: 0.8rem;">TOP ISHTIROKCHILAR</div>
+        </header>
+
+        <h1>Leaderboard</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 10%;">#</th>
+                    <th style="width: 50%;">Ism Familiya</th>
+                    <th style="width: 20%; text-align: right;">WPM</th>
+                    <th style="width: 20%; text-align: right;">Aniqlik</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                </tbody>
+        </table>
+
+        <div style="text-align: center;">
+            <a href="asosiy.html" class="back-btn"><- O'yinga qaytish</a>
+        </div>
+    </div>
+
+    <script>
+      // Serverdan ma'lumotlarni olib kelish funksiyasi
+async function loadLeaderboard() {
+    const tableBody = document.getElementById('leaderboard-body');
+
+    // Jadvalni tozalash va "Yuklanmoqda..." xabarini ko'rsatish
+    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--sub);">Ma'lumotlar yuklanmoqda...</td></tr>`;
+
+    try {
+        // 1. Serverga (Flask) so'rov yuborish
+        const response = await fetch('http://localhost:5000/api/leaderboard');
+
+        if (!response.ok) {
+            throw new Error("Server bilan aloqa o'rnatib bo'lmadi");
+        }
+
+        // 2. JSON formatdagi ma'lumotni olish
+        const users = await response.json();
+
+        // 3. Agar foydalanuvchilar yo'q bo'lsa
+        if (users.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 50px; color: var(--sub);">Hali hech qanday natija yo'q. Birinchi bo'lib rekord o'rnating!</td></tr>`;
+            return;
+        }
+
+        // 4. Ma'lumotlarni jadvalga chiqarish
+        tableBody.innerHTML = users.map((user, index) => {
+            const rank = index + 1;
+            const isTop1 = rank === 1 ? 'top-1' : ''; // Birinchi o'rin uchun maxsus klass
+
+            // Natijalar bo'sh bo'lsa "-" belgisini qo'yish
+            const wpmDisplay = user.bestWPM || 0;
+            const accDisplay = user.bestAcc ? user.bestAcc + "%" : "0%";
+
+            return `
+                <tr class="user-row ${isTop1}">
+                    <td class="rank">${rank}</td>
+                    <td class="name">${user.fullname}</td>
+                    <td class="wpm-cell">${wpmDisplay}</td>
+                    <td class="acc-cell">${accDisplay}</td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        // 5. Xatolik yuz bersa (masalan, server o'chiq bo'lsa)
+        console.error("Leaderboard yuklashda xatolik:", err);
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align:center; padding: 50px; color: #ef4444;">
+                    ⚠️ Server bilan aloqa yo'q!<br>
+                    <small style="color: var(--sub);">Terminalda 'python server.py' ishlayotganini tekshiring.</small>
+                </td>
+            </tr>`;
+    }
+}
+
+// Sahifa to'liq yuklanganda funksiyani ishga tushirish
+document.addEventListener('DOMContentLoaded', loadLeaderboard);
+
+// Har 30 soniyada ma'lumotlarni yangilab turish (ixtiyoriy)
+setInterval(loadLeaderboard, 30000);
+    </script>
+</body>
+</html>

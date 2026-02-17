@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fast Type - Pro Elite</title>
+    <style>
+        :root {
+            --bg: #ffffff; --main: #3b82f6; --sub: #94a3b8; --text: #1e293b;
+            --font: 'Courier New', Courier, monospace;
+        }
+        body.dark-mode {
+            --bg: #111111; --main: #facc15; --sub: #64748b; --text: #e2e8f0;
+        }
+        body {
+            background-color: var(--bg); color: var(--text); font-family: var(--font);
+            margin: 0; display: flex; flex-direction: column; height: 100vh;
+            transition: 0.3s; overflow: hidden;
+        }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 50px; }
+        .logo { font-weight: 900; font-size: 1.5rem; color: var(--main); text-decoration: none; }
+
+        .switch { position: relative; display: inline-block; width: 45px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--main); }
+        input:checked + .slider:before { transform: translateX(23px); }
+
+        main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 10%; position: relative; }
+        #afk-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 100; border-radius: 20px; }
+        #afk-overlay p { font-size: 1.5rem; color: var(--main); font-weight: bold; background: var(--bg); padding: 15px 30px; border-radius: 10px; }
+
+        .timer-display { font-size: 3.5rem; color: var(--main); margin-bottom: 10px; font-weight: 900; }
+        .timer-options { display: flex; gap: 20px; margin-bottom: 20px; color: var(--sub); font-weight: bold; }
+        .time-opt { cursor: pointer; }
+        .time-opt.active { color: var(--main); }
+
+        .words-wrapper { max-width: 900px; height: 110px; overflow: hidden; position: relative; mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent); }
+        .words-container { font-size: 2rem; line-height: 1.5; font-weight: 800; color: var(--sub); display: flex; flex-wrap: wrap; transition: transform 0.3s ease; }
+        #hidden-input { position: absolute; opacity: 0; }
+        .letter { position: relative; display: inline-block; white-space: pre; }
+        .letter.correct { color: var(--text); }
+        .letter.incorrect { color: #ef4444; }
+        .letter.current::after { content: ""; position: absolute; left: 0; bottom: 0; width: 3px; height: 100%; background-color: var(--main); animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .live-stats { display: flex; gap: 60px; margin-top: 40px; font-size: 3rem; color: var(--main); font-weight: 900; }
+        .stat-label { font-size: 1rem; color: var(--sub); display: block; text-align: center; font-weight: 400; }
+        .restart-btn { margin-top: 30px; background: none; border: none; color: var(--sub); font-size: 2.5rem; cursor: pointer; transition: 0.3s; }
+        .restart-btn:hover { color: var(--main); transform: rotate(180deg); }
+
+        footer { display: flex; justify-content: space-between; padding: 20px 50px; color: var(--sub); font-weight: bold; }
+        a { color: inherit; text-decoration: none; transition: 0.2s; }
+        a:hover { color: var(--main); }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="index.html" class="logo">FAST TYPE</a>
+    <div class="nav-right">
+        <label class="switch">
+            <input type="checkbox" id="theme-toggle">
+            <span class="slider"></span>
+        </label>
+        <a href="profile.html" id="profile-link" style="font-size: 1.3rem; font-weight:bold;">profil</a>
+    </div>
+</header>
+
+<main id="game-area">
+    <div id="afk-overlay"><p>⚠️ PAUZA: Kursorni keltiring</p></div>
+    <div id="timer-val" class="timer-display">30</div>
+    <div class="timer-options" id="timer-nav">
+        <span>soniyalar -></span>
+        <span class="time-opt" data-time="15">15</span>
+        <span class="time-opt active" data-time="30">30</span>
+        <span class="time-opt" data-time="60">60</span>
+    </div>
+    <div class="words-wrapper"><div class="words-container" id="words-box"></div></div>
+    <input type="text" id="hidden-input" autocomplete="off">
+    <div class="live-stats">
+        <div><span id="wpm">0</span><span class="stat-label">wpm</span></div>
+        <div><span id="acc">100</span><span class="stat-label">acc</span></div>
+    </div>
+    <button class="restart-btn" id="restart-btn">↻</button>
+</main>
+
+<footer>
+    <div onclick="location.href='leaderboard.html'" style="cursor:pointer">LEADERBOARD</div>
+    <div><a href="https://t.me/uzzbecci" target="_blank">💬 support</a></div>
+</footer>
+
+<script>
+  const wordsBox = document.getElementById('words-box');
+const hiddenInput = document.getElementById('hidden-input');
+const timerVal = document.getElementById('timer-val');
+const timerNav = document.getElementById('timer-nav');
+const afkOverlay = document.getElementById('afk-overlay');
+const gameArea = document.getElementById('game-area');
+const wpmShow = document.getElementById('wpm');
+const accShow = document.getElementById('acc');
+const themeToggle = document.getElementById('theme-toggle');
+
+const wordsList = "olma anor daryo quyosh dasturlash maktab kitob qalam ilm natija dunyo tezlik harakat kelajak maqsad baxt omad jasorat kompyuter bilim asbob tugma ekran rasm".split(' ');
+let timeLimit = 30, timeLeft = 30, timerInterval = null, afkTimeout = null, charIndex = 0, mistakes = 0, isStarted = false, isPaused = false;
+
+// 1. O'yinni boshlash va sozlash
+function init() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (!user) { location.href = 'index.html'; return; }
+    document.getElementById('profile-link').innerText = user.fullname.split(' ')[0];
+
+    clearInterval(timerInterval);
+    clearTimeout(afkTimeout);
+    wordsBox.innerHTML = '';
+    wordsBox.style.transform = `translateY(0px)`;
+    charIndex = 0;
+    mistakes = 0;
+    isStarted = false;
+    isPaused = false;
+    timeLeft = timeLimit;
+    timerVal.innerText = timeLeft;
+    timerNav.style.opacity = "1";
+    wpmShow.innerText = 0;
+    accShow.innerText = 100;
+
+    hiddenInput.disabled = false;
+    hiddenInput.value = "";
+    afkOverlay.style.display = 'none';
+
+    addWords(60);
+    updateCursor();
+
+    // Avtomatik fokus berish
+    setTimeout(() => hiddenInput.focus(), 100);
+}
+
+function addWords(count) {
+    for (let i = 0; i < count; i++) {
+        let word = wordsList[Math.floor(Math.random() * wordsList.length)];
+        let wordSpan = document.createElement('span');
+        wordSpan.style.display = 'inline-block';
+        wordSpan.style.marginRight = '15px';
+
+        word.split('').forEach(char => {
+            let span = document.createElement('span');
+            span.className = 'letter';
+            span.innerText = char;
+            wordSpan.appendChild(span);
+        });
+
+        let space = document.createElement('span');
+        space.className = 'letter';
+        space.innerText = ' ';
+        wordSpan.appendChild(space);
+        wordsBox.appendChild(wordSpan);
+    }
+}
+
+function updateCursor() {
+    const letters = wordsBox.querySelectorAll('.letter');
+    const currentLetter = letters[charIndex];
+    letters.forEach(l => l.classList.remove('current'));
+
+    if (currentLetter) {
+        currentLetter.classList.add('current');
+        const containerRect = wordsBox.parentElement.getBoundingClientRect();
+        const letterRect = currentLetter.getBoundingClientRect();
+
+        if (letterRect.top > containerRect.top + 60) {
+            const currentTransform = new WebKitCSSMatrix(window.getComputedStyle(wordsBox).transform).m42;
+            wordsBox.style.transform = `translateY(${currentTransform - 48}px)`;
+        }
+    }
+}
+
+// 2. Yozish logikasi (Vaqtni tekshirish bilan)
+hiddenInput.addEventListener('keydown', (e) => {
+    if (timeLeft <= 0) return; // Vaqt tugasa ishlamaydi
+
+    if (!isStarted && e.key.length === 1) {
+        isStarted = true;
+        timerNav.style.opacity = "0";
+        startTimer();
+    }
+
+    clearTimeout(afkTimeout);
+    if (isStarted && !isPaused) {
+        afkTimeout = setTimeout(() => {
+            isPaused = true;
+            clearInterval(timerInterval);
+            afkOverlay.style.display = 'flex';
+        }, 5000);
+    }
+
+    if (e.key === 'Backspace' && charIndex > 0) {
+        const letters = wordsBox.querySelectorAll('.letter');
+        charIndex--;
+        letters[charIndex].classList.remove('correct', 'incorrect');
+        updateCursor();
+    }
+});
+
+hiddenInput.addEventListener('input', (e) => {
+    // VAQT TUGASA YOZISHNI TO'XTATISH
+    if (isPaused || timeLeft <= 0) {
+        e.target.value = "";
+        return;
+    }
+
+    const letters = wordsBox.querySelectorAll('.letter');
+    const inputVal = e.target.value;
+
+    for (let char of inputVal) {
+        if (charIndex < letters.length) {
+            if (char === letters[charIndex].innerText) {
+                letters[charIndex].classList.add('correct');
+            } else {
+                letters[charIndex].classList.add('incorrect');
+                mistakes++;
+            }
+            charIndex++;
+            if (charIndex % 20 === 0) addWords(10);
+        }
+    }
+
+    e.target.value = "";
+    updateCursor();
+    updateStats();
+});
+
+// 3. Taymer va Statistika
+function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (timeLeft > 0) {
+            timeLeft--;
+            timerVal.innerText = timeLeft;
+        } else {
+            finishGame();
+        }
+    }, 1000);
+}
+
+function updateStats() {
+    let timePassed = (timeLimit - timeLeft) / 60 || 0.01;
+    let wpm = Math.round(((charIndex - mistakes) / 5) / timePassed);
+    let acc = Math.round(((charIndex - mistakes) / charIndex) * 100) || 100;
+
+    wpmShow.innerText = wpm < 0 ? 0 : wpm;
+    accShow.innerText = acc < 0 ? 0 : acc;
+}
+
+// 4. O'yinni tugatish va Serverga yuborish
+async function finishGame() {
+    clearInterval(timerInterval);
+    hiddenInput.disabled = true; // Inputni qulflash
+
+    const finalWpm = parseInt(wpmShow.innerText);
+    const finalAcc = parseInt(accShow.innerText);
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+    // Serverga yuborish
+    try {
+        const response = await fetch('http://localhost:5000/api/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                fullname: currentUser.fullname,
+                wpm: finalWpm,
+                acc: finalAcc
+            })
+        });
+
+        if (response.ok) {
+            alert("Vaqt tugadi! Natijangiz saqlandi.");
+            location.href = 'leaderboard.html';
+        }
+    } catch (err) {
+        console.log("Serverga ulanishda xatolik:", err);
+        alert("O'yin tugadi! (Server o'chiqligi sababli natija faqat ekranda chiqdi)");
+    }
+}
+
+// Qo'shimcha funksiyalar
+document.addEventListener('click', () => { if (!hiddenInput.disabled) hiddenInput.focus(); });
+
+gameArea.addEventListener('mouseenter', () => {
+    if (isPaused) {
+        isPaused = false;
+        afkOverlay.style.display = 'none';
+        startTimer();
+        hiddenInput.focus();
+    }
+});
+
+document.querySelectorAll('.time-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+        if (!isStarted) {
+            document.querySelectorAll('.time-opt').forEach(i => i.classList.remove('active'));
+            opt.classList.add('active');
+            timeLimit = parseInt(opt.dataset.time);
+            timeLeft = timeLimit;
+            timerVal.innerText = timeLeft;
+        }
+    });
+});
+
+document.getElementById('restart-btn').addEventListener('click', init);
+
+themeToggle.addEventListener('change', () => {
+    document.body.classList.toggle('dark-mode');
+});
+
+init();
+</script>
+</body>
+</html>
